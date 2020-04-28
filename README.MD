@@ -1,4 +1,4 @@
-CentOS 7 Docker container with HTPmod Shiny App
+##CentOS 7 Docker container with HTPmod Shiny App
 
 A Shiny app for high-throughput data modeling and visualization of large-scale biological data in plants. Implemented on CentOS 7 with updates and tested in Docker Desktop for Windows on Windows 10 Hyper-V. 
 
@@ -7,14 +7,14 @@ Improvements over the existing implementations include migration to CentOS 7 and
 https://github.com/htpmod/HTPmod
 https://github.com/htpmod/HTPmod-shinyApp
 
-Included packages:
+#Included packages:
     -HTPmod-ShinyApp
     -R
     -RStudio Server
     -Shiny-Server
 
 
-Instructions:
+#Instructions:
     1) Install Docker Desktop Community Edition: https://www.docker.com/products/docker-desktop
         a) For Windows 10:
              i) Enable Hyper-V: https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/quick-start/enable-hyper-v
@@ -42,19 +42,19 @@ Instructions:
 
 
 
-Modify the Docker Container
+#Modify the Docker Container
 	docker run -p 3838:3838 -p 8787:8787 -it HTpmod-shiny /bin/bash
 		+Arg -i tells docker to attach stdin to the container.
 		+Arg -t tells docker to give us a pseudo-terminal.
 		+Arg /bin/bash will run a terminal process in your container.
 
-Adapted from:
-	Centos 7 Docker Shiny-Server: 
+#Adapted from:
+	#Centos 7 Docker Shiny-Server: 
             https://github.com/keberwein/docker_shiny-server_centos7
                 Provided by: Kris Eberwein
 	            License: GNU General Public License v3.0
                 https://github.com/keberwein/docker_shiny-server_centos7/blob/master/LICENSE
-	HTPmod-shinyApp: 
+	#HTPmod-shinyApp: 
             https://github.com/htpmod/HTPmod-shinyApp
     	    Provided by: Chen Lab Computational Biology Group, School of Life Sciences, Nanjing University
 	    	License: GNU General Public License v3.0
