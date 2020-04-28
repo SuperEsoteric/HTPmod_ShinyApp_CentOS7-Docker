@@ -1,0 +1,93 @@
+FROM centos:centos7 
+MAINTAINER kris eberwein 
+
+# localhost: access only from the docker host using http://localhost:3838/HTPmod 
+#         ** Does not require --build-arg HOST_HOSTNAME to be set in docker build command.
+# build-arg HOST_HOSTNAME: sets links between apps to use specificed host name by specifying --build-arg HOST_HOSTNAME=$YourHostNameOrFQDN
+# 		  ** Host firewall config must allow access to port 3838.
+#		  ** Host network must allow port forwarding to this Docker container.
+# 		  ** Client's browser must be able to resolve host name.
+ARG HOST_HOSTNAME=localhost
+RUN echo $HOST_HOSTNAME
+ 
+RUN yum -y install epel-release 
+RUN yum update -y 
+RUN yum upgrade -y 
+RUN yum clean all -y 
+# RUN yum reinstall -y glibc-common 
+RUN yum install -y locales java-1.7.0-openjdk-devel tar wget net-tools
+
+# R devtools pre-requisites: 
+RUN yum install -y git xml2 libxml2-devel curl libcurl-devel openssl-devel pandoc cairo-devel
+
+WORKDIR /home/root 
+RUN yum install -y R 
+RUN mkdir -p /usr/share/doc/R-3.6.0/html
+
+RUN R -e "install.packages(c('ade4', 'ape', 'AppliedPredictiveModeling', 'caret', 'cba', 'corrplot', 'doMC', 'doParallel', 'factoextra', 'gbm', 'ggcorrplot', 'ggpubr', 'grid', 'kohonen', 'parallel', 'pheatmap', 'plot3D', 'pROC', 'RColorBrewer', 'readr', 'Rtsne', 'shiny', 'shinyBS', 'shinyjs', 'svglite', 'rmarkdown'), repos='http://cran.r-project.org', dependencies=TRUE, lib='/usr/lib64/R/library', INSTALL_opts='--no-docs, --no-help')" 
+RUN R -e "if (!requireNamespace('BiocManager', quietly = TRUE)) install.packages(c('BiocManager'), repos='http://cran.r-project.org', dependencies=TRUE, lib='/usr/lib64/R/library', INSTALL_opts='--no-docs, --no-help')" 
+RUN R -e "BiocManager::install()"
+RUN R -e "BiocManager::install(c('pcaMethods', 'BiocParallel', 'preprocessCore'))"
+
+#----------------------- 
+# Add RStudio binaries to PATH 
+# export PATH="/usr/lib/rstudio-server/bin/:$PATH" 
+ENV PATH /usr/lib/rstudio-server/bin/:$PATH  
+ENV LANG en_US.UTF-8 
+
+RUN yum install -y openssl098e supervisor passwd pandoc 
+
+# Install Rstudio server:
+RUN wget https://download2.rstudio.org/server/centos6/x86_64/rstudio-server-rhel-1.2.5033-x86_64.rpm
+RUN yum -y install --nogpgcheck rstudio-server-rhel-1.2.5033-x86_64.rpm \
+                && rm -rf rstudio-server-rhel-1.2.5033-x86_64.rpm
+ 
+RUN groupadd rstudio \
+                && useradd -g rstudio rstudio \
+                && echo rstudio | passwd rstudio --stdin
+ 
+RUN wget https://download3.rstudio.org/centos6.3/x86_64/shiny-server-1.5.12.933-x86_64.rpm
+RUN yum -y install --nogpgcheck shiny-server-1.5.12.933-x86_64.rpm \
+                && rm -rf shiny-server-1.5.12.933-x86_64.rpm
+				
+RUN usermod -a -G rstudio shiny \
+	&& usermod -a -G rstudio-server rstudio \
+	&& usermod -a -G rstudio-server shiny
+	
+RUN chown rstudio:rstudio -R /var/lib/rstudio-server
+ 
+RUN mkdir -p /var/log/shiny-server \ 
+	&& chown shiny:shiny /var/log/shiny-server \ 
+	&& chown shiny:shiny -R /srv/shiny-server \ 
+	&& chmod 755 -R /srv/shiny-server \ 
+	&& chown shiny:shiny -R /opt/shiny-server/samples/sample-apps \ 
+	&& chmod 755 -R /opt/shiny-server/samples/sample-apps  
+
+RUN cd /srv/shiny-server \
+	&& git clone https://github.com/htpmod/HTPmod-shinyApp.git \
+	&& mv HTPmod-shinyApp/* . \
+	&& rm -rf HTPmod-shinyApp/ \
+	&& chmod -R 755 /srv/shiny-server \ 
+	&& mkdir -p htpdvis/tmp predmod/tmp \
+	&& chmod -R 777 htpdvis/tmp predmod/tmp \
+	&& chown shiny:shiny -R /srv/shiny-server
+
+RUN cd /var/lib \
+	&& mkdir -p /var/lib/shiny-server/bookmarks \
+	&& chown shiny:shiny -R /var/lib/shiny-server \
+	&& chown shiny:shiny -R /var/lib/shiny-server/bookmarks
+
+# Customize links between apps to work
+RUN cd /srv/shiny-server \
+	&& sed -i -c "s+http://www.epiplant.hu-berlin.de/shiny/app/+http://$HOST_HOSTNAME:3838/+g" HTPmod/global.R \
+	&& sed -i -c "s+http://www.epiplant.hu-berlin.de/shiny/app/+http://$HOST_HOSTNAME:3838/+g" growmod/global.R \
+	&& sed -i -c "s+http://www.epiplant.hu-berlin.de/shiny/app/+http://$HOST_HOSTNAME:3838/+g" htpdvis/global.R \
+	&& sed -i -c "s+http://www.epiplant.hu-berlin.de/shiny/app/+http://$HOST_HOSTNAME:3838/+g" predmod/global.R
+	
+EXPOSE 8787 3838 
+
+RUN mkdir -p /var/log/supervisor \ 
+	&& chmod 755 -R /var/log/supervisor 
+
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf 
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]  
