@@ -24,7 +24,7 @@ https://github.com/htpmod/HTPmod-shinyApp
 
  	3) Build the Docker image from dockerfile using PowerShell prompt: 
 		To access Shiny apps from host computer:
-		    > docker build -f "%PathToYourFiles%\HTPmod-ShinyServer-CentosDockerfile" "%PathToYoursFiles%" --tag="htpmod-shiny" --no-cache
+			> docker build -f "%PathToYourFiles%\HTPmod-ShinyServer-CentosDockerfile" "%PathToYoursFiles%" --tag="htpmod-shiny" --no-cache
 		To access Shiny apps from remote computers:
 			> docker build -f "%PathToYourFiles%\HTPmod-ShinyServer-CentosDockerfile" "%PathToYoursFiles%" --tag="htpmod-shiny" --no-cache --build-arg HOST_HOSTNAME=$([System.Net.Dns]::GetHostByName(($env:computerName)).Hostname.toLower())
 
